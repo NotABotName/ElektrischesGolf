@@ -31,3 +31,30 @@ export function calculateElectricForceVector(objectA, objectB) {
     // Return the electric force vector
     return { x: electricForceX, y: electricForceY };
 }
+
+// Helper function to clamp a value within a range
+export function clamp(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+}
+
+// Helper function to check collision between circle and rectangle
+export function circleRectCollision(circle, rect) {
+    const circleX = circle.x;
+    const circleY = circle.y;
+    const circleRadius = circle.radius;
+
+    const rectX = rect.x;
+    const rectY = rect.y;
+    const rectWidth = rect.width;
+    const rectHeight = rect.height;
+
+    const closestX = clamp(circleX, rectX, rectX + rectWidth);
+    const closestY = clamp(circleY, rectY, rectY + rectHeight);
+
+    const distanceX = circleX - closestX;
+    const distanceY = circleY - closestY;
+
+    const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+    return distanceSquared < (circleRadius * circleRadius);
+}

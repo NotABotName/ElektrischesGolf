@@ -3,22 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elektrisches Golf</title>
+    <title>Elektrisches Hockey</title>
     <style>
         body {
             height: 100vh;
-            background-color: rgb(54, 61, 90);
-            display: grid;
-            place-items: center;
+            background-color: #36415A;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             margin: 0;
+            font-family: 'Arial', sans-serif;
         }
+
+        .canvas-container {
+            position: relative;
+            border: 2px solid #36415A;
+            border-radius: 8px;
+        }
+
         canvas {
-            background-color: rgb(255, 255, 255);
+            background-color: #FFF;
+            position: relative;
+        }
+
+        .game-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #49C78E;
+            color: #FFF;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #257D55;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 99.45%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            z-index: 2;
+        }
+
+        .result-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button.retry {
+            background-color: #FF6363;
+            color: #FFF;
+        }
+
+        button.retry:hover {
+            background-color: #c04848;
+        }
+
+        button.next {
+            background-color: #49C78E;
+            color: #FFF;
+        }
+
+        button:hover {
+            background-color: #257D55;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="overlay">
+            <h1 id="resultText"></h1>
+            <div class="result-buttons">
+                <button class="retry" id="retryBtn">Retry</button>
+                <button class="next" id="nextBtn">Retry</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="game-buttons">
+        <button id="playBtn">Play</button>
+        <button id="stopBtn">Pause</button>
+        <button id="restartBtn">Restart</button>
+    </div>
+
     <script src="src/main.js" type="module"></script>
 </body>
 </html>

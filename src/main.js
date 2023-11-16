@@ -10,13 +10,82 @@ import {
 import {
     calculateUnitVector,
     calculateElectricForceVector,
+    clamp,
+    circleRectCollision
 } from './utils_math.js';
+
+// Runtime variables
+var loop = false
+var gameOver = false
+var gameWon = false; 
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Get references to the buttons using their IDs
+const playButton = document.getElementById('playBtn');
+const stopButton = document.getElementById('stopBtn');
+const restartButton = document.getElementById('restartBtn');
+
+// Add event listeners to the buttons
+playButton.addEventListener('click', () => {
+    loop = true
+});
+
+stopButton.addEventListener('click', () => {
+    loop = false
+});
+
+restartButton.addEventListener('click', () => {
+    if(gameOver) return;
+    resetGameState()
+});
+
+// Display overlay based on game state
+const overlay = document.getElementById('overlay');
+const resultText = document.getElementById('resultText');
+const retryBtn = document.getElementById('retryBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function updateGameOverScreen() {
+    if (!gameOver) {
+        overlay.style.display = 'none';
+        return
+    } else {
+        overlay.style.display = 'flex';
+    }
+
+    if (gameWon) {
+        resultText.innerText = 'Game Won!';
+        retryBtn.style.display = 'none';
+        nextBtn.style.display = 'block';
+    } else {
+        resultText.innerText = 'Game Lost';
+        retryBtn.style.display = 'block';
+        nextBtn.style.display = 'none';
+    }
+}
+updateGameOverScreen()
+
+retryBtn.addEventListener('click', () => {
+    if(!gameOver) return;
+    resetGameState()
+    loop = false
+    gameOver = false
+    updateGameOverScreen()
+    gameLoop()
+});
+
+nextBtn.addEventListener('click', () => {
+    if(!gameOver) return;
+    resetGameState()
+    loop = false
+    gameOver = false
+    updateGameOverScreen()
+    gameLoop()
+});
+
 // Game Objects
-const gameObjects = [];
 
 class GameObject {
     constructor(name, x, y, enabled, charge, mass) {
@@ -98,19 +167,81 @@ class Collider extends GameObject {
     }
 }
 
-const Collider1 = new Collider('Collider', 300, 200, false, 0, 0, 25, 100)
+class Goal extends GameObject {
+    constructor(name, x, y, enabled, charge, mass, width, height) {
+        super(name, x, y, enabled, charge, mass);
 
-const Positive1 = new Positive('Negative', 100, 300, true, 1, 25)
-const Negative1 = new Negative('Positive', 500, 100, false, -1, 1)
-const Negative2 = new Negative('Positive', 200, 300, false, -1, 1)
-const Negative3 = new Negative('Positive', 300, 200, false, -1, 1)
-const Negative4 = new Negative('Positive', 400, 300, false, -1, 1)
+        this.mouseMoveable = false
 
-gameObjects.push(Positive1, Negative2, Negative1, Negative3, Negative4, Collider1)
+        this.width = width;
+        this.height = height;
+    }
+
+    drawObject(ctx) {
+        drawRectangle(ctx, this.x, this.y, this.width, this.height, 'green');
+    }
+}
+
+// Change Game States
+function callGameLost() {
+    loop = false;
+    gameOver = true;
+    gameWon = false;
+    updateGameOverScreen()
+}
+
+function callGameWon() {
+    loop = false;
+    gameOver = true;
+    gameWon = true;
+    updateGameOverScreen()
+}
+
+var gameObjects = [];
+
+function initializeGameState() {
+    
+    const Positive1 = new Positive('Positive main', 100, 300, true, 1, 25)
+
+    const Collider1 = new Collider('Collider 1', 200, 150, false, 0, 0, 25, 100)
+    const Collider2 = new Collider('Collider 1', 400, 250, false, 0, 0, 25, 100)
+    const Collider3 = new Collider('Collider 2', 600, 350, false, 0, 0, 25, 100)
+
+    const Goal1 = new Goal('Goal 1', 700, 250, false, 0, 0, 25, 100)
+    
+    const Negative1 = new Negative('Negative 1', 500, 100, false, -1, 1)
+    const Negative2 = new Negative('Negative 2', 200, 300, false, -1, 1)
+    const Negative3 = new Negative('Negative 3', 300, 200, false, -1, 1)
+    const Negative4 = new Negative('Negative 4', 400, 300, false, -1, 1)
+    const Negative5 = new Negative('Negative 5', 500, 500, false, -1, 1)
+    const Negative6 = new Negative('Negative 6', 400, 400, false, -1, 1)
+
+    gameObjects = []
+
+    gameObjects.push(Positive1, Negative2, Negative1, Negative3, Negative4, Negative6, Negative5, Collider1, Collider2, Collider3, Goal1)
+
+    // Bounds
+    const Bound1 = new Collider('Collider 1', 0, 0, false, 0, 0, 5, 600)
+    const Bound2 = new Collider('Collider 2', 800-5, 0, false, 0, 0, 5, 600)
+    const Bound3 = new Collider('Collider 3', 0, 0, false, 0, 0, 800, 5)
+    const Bound4 = new Collider('Collider 3', 0, 600-5, false, 0, 0, 800, 5)
+
+
+    gameObjects.push(Bound1,Bound2, Bound3, Bound4)
+}
+initializeGameState()
+
+function resetGameState() {
+    gameObjects = gameObjects.filter(object => !(object instanceof Positive));
+
+    const Positive1 = new Positive('Positive main', 100, 300, true, 1, 25)
+    
+    gameObjects.push(Positive1);
+}
+
+console.log(gameObjects)
 
 // Move Game Objects
-
-// Inside your script after getting the canvas and context
 canvas.addEventListener('mousedown', handleMouseDown);
 canvas.addEventListener('mousemove', handleMouseMove);
 canvas.addEventListener('mouseup', handleMouseUp);
@@ -120,7 +251,7 @@ canvas.addEventListener('touchmove', handleTouchMove);
 canvas.addEventListener('touchend', handleTouchEnd);
 
 let selectedObject = null;
-let offset = { x: 0, y: 0 }; // Offset between mouse/touch position and object center
+let offset = { x: 0, y: 0 };
 
 function handleMouseDown(event) {
     console.log('MouseDown')
@@ -174,27 +305,30 @@ function handleTouchEnd(event) {
     handleMouseUp();
 }
 
-// Should Loop Variable
-var loop = true
-
 // Collision
+function checkForCollision(gameObjects, staticObjects) {
+    var collisionDetected = false;
 
-function checkForCollision(ctx, gameObjects, staticObjects) {
-    const colliders = []
     gameObjects.forEach(object => {
         if (object.enabled) {
-            colliders.forEach(collider => {
-            })
+            staticObjects.forEach(collider => {
+                if (circleRectCollision(object, collider)) {
+                    collisionDetected = true;
+                }
+            });
         }
     });
 
-    return false
+    return collisionDetected;
 }
 
 // Main Game Loop
 let lastUpdate = Date.now();
 
 function updateGameObjects(gameObjects, staticObjects, dt) {
+
+    const colliders = gameObjects.filter(object => object instanceof Collider);
+    const goals = gameObjects.filter(object => object instanceof Goal);
     
     gameObjects.forEach(object => {
         if (object.enabled) {
@@ -213,12 +347,24 @@ function updateGameObjects(gameObjects, staticObjects, dt) {
             
             object.CombinedVector = CombinedVector
             
-            object.moveObject({ x: CombinedVector.x * -0.000000001, y: CombinedVector.y * -0.00000001 }, dt, 0.025);
+            if(loop) {
+                object.moveObject({ x: CombinedVector.x * -0.000000001, y: CombinedVector.y * -0.00000001 }, dt, 0.025);
+            }
         }
     });
 
-    if (checkForCollision(ctx, gameObjects, staticObjects)) {
-        loop = false;
+    // First check for collisions with colliders
+    if (checkForCollision(gameObjects, colliders)) {
+        // Collision with colliders Game Lost
+        callGameLost()
+
+        return
+    }
+
+    // If no collisions with colliders were found check for collisions with the goal
+    if(checkForCollision(gameObjects, goals)) {
+        // Collision with Goal Game Won
+        callGameWon()
     }
 }
 
@@ -232,8 +378,10 @@ function drawGameObjects(ctx, gameObjects, staticObjects) {
 
         if (object.enabled) {
             staticObjects.forEach(staticObject => {
-                const fieldVector = calculateElectricForceVector(staticObject, object);
-                drawArrow(ctx, object.x, object.y, { x: fieldVector.x / 5000, y: fieldVector.y / 5000 }, `${staticObject.charge > 0 ? 'red' : 'blue'}`, 5, 15);
+                if(staticObject instanceof Negative) {
+                    const fieldVector = calculateElectricForceVector(staticObject, object);
+                    drawArrow(ctx, object.x, object.y, { x: fieldVector.x / 5000, y: fieldVector.y / 5000 }, `${staticObject.charge > 0 ? 'red' : 'blue'}`, 5, 15);
+                }
             });
 
             drawArrow(ctx, object.x, object.y, { x: object.CombinedVector.x / 5000, y: object.CombinedVector.y / 5000 }, 'orange', 5, 15);
@@ -242,9 +390,8 @@ function drawGameObjects(ctx, gameObjects, staticObjects) {
 }
 
 function gameLoop() {
-
-    // Check if should loop
-    if (!loop) return;
+    // Check if Game Over
+    if(gameOver) return;
 
     // Get Delta Time DT
     const now = Date.now();
@@ -253,7 +400,7 @@ function gameLoop() {
 
     // Update game logic
     var staticObjects = gameObjects.filter(object => !object.enabled);
-    staticObjects = staticObjects.filter(object => !(object instanceof Collider));
+    
     updateGameObjects(gameObjects, staticObjects, dt);
 
     // Draw game objects
