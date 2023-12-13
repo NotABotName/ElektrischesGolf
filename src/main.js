@@ -97,16 +97,18 @@ class GameObject {
         this.y = y
 
         // Utils
-        this.CombinedVector
+        this.CombinedVector = {x:0, y:0}
         this.radius = 10 // for collision detection
 
         // Physics
         this.enabled = enabled
-        this.charge = charge // Coulombs
-        this.mass = mass // kilograms
+        this.charge = charge 
+        this.mass = mass
         this.velocity = {x: 0, y: 0}
 
         this.mouseMoveable = true
+
+        this.vectors = []
     }
 
     drawObject(ctx) {
@@ -131,8 +133,8 @@ class GameObject {
         }
     
         // Update velocity using clamped acceleration
-        this.velocity.x += acceleration.x * time;
-        this.velocity.y += acceleration.y * time;
+        this.velocity.x += 0.5 * acceleration.x * time * time;
+        this.velocity.y += 0.5 * acceleration.y * time * time;
     
         // Calculate new position based on the updated velocity
         this.x += this.velocity.x * time;
@@ -239,7 +241,7 @@ function resetGameState() {
     gameObjects.push(Positive1);
 }
 
-console.log(gameObjects)
+console.log('game objects: ', gameObjects)
 
 // Move Game Objects
 canvas.addEventListener('mousedown', handleMouseDown);
@@ -325,6 +327,35 @@ function checkForCollision(gameObjects, staticObjects) {
 // Main Game Loop
 let lastUpdate = Date.now();
 
+function calculateMovementEndPosition(mass, position, velocity, force, time) {
+    const maxAcceleration = 50; // You need to define maxAcceleration
+
+    // Calculate unclamped acceleration
+    const acceleration = {
+        x: force.x / mass,
+        y: force.y / mass
+    };
+
+    // Calculate the magnitude of the acceleration
+    const accelerationMagnitude = Math.sqrt(acceleration.x ** 2 + acceleration.y ** 2);
+
+    // Check if the magnitude exceeds the maximum acceleration
+    if (accelerationMagnitude > maxAcceleration) {
+        // Scale down the acceleration to the maximum acceleration
+        const scale = maxAcceleration / accelerationMagnitude;
+        acceleration.x *= scale;
+        acceleration.y *= scale;
+    }
+
+    // Calculate new position
+    const newPosition = {
+        x: position.x + velocity.x + 0.5 * acceleration.x * time * time,
+        y: position.y + velocity.y + 0.5 * acceleration.y * time * time
+    };
+
+    return newPosition;
+}
+
 function updateGameObjects(gameObjects, staticObjects, dt) {
 
     const colliders = gameObjects.filter(object => object instanceof Collider);
@@ -332,24 +363,37 @@ function updateGameObjects(gameObjects, staticObjects, dt) {
     
     gameObjects.forEach(object => {
         if (object.enabled) {
-            const CombinedVector = { x: 0, y: 0 };
-            
-            // Calculate Vectors for every staticObject
-            const vectors = staticObjects.map(staticObject => {
-                return calculateElectricForceVector(staticObject, object);
-            });
-            
-            // Calculate Combined Vector
-            vectors.forEach(vector => {
-                CombinedVector.x += vector.x;
-                CombinedVector.y += vector.y;
-            });
-            
-            object.CombinedVector = CombinedVector
-            
-            if(loop) {
-                object.moveObject({ x: CombinedVector.x * -0.000000001, y: CombinedVector.y * -0.00000001 }, dt, 0.025);
+            var objectPosition = {x: object.x, y: object.y}
+
+            for (let time = 0; time <= dt; time += 1) {
+                
+                const CombinedVector = { x: 0, y: 0 };
+                
+                // Calculate Vectors for every staticObject
+                const vectors = staticObjects.map(staticObject => {
+                    const TempNewVector = calculateElectricForceVector(object.charge, objectPosition, staticObject.charge, {x: staticObject.x, y: staticObject.y})
+                    return TempNewVector
+                });
+
+                object.vectors = vectors.filter(vectors => (vectors.x != 0 || vectors.y != 0))
+                
+                // Calculate Combined Vector
+                vectors.forEach(vector => {
+                    CombinedVector.x += vector.x;
+                    CombinedVector.y += vector.y;
+                });
+
+                object.CombinedVector = CombinedVector
+                
+                if(loop) {
+                    const TempNewPosition = calculateMovementEndPosition(1, objectPosition, {x: 0, y: 0}, { x: CombinedVector.x * -.0000001, y: CombinedVector.y * -.0000001}, 1)
+                    // console.log(TempNewPosition)
+                    objectPosition = TempNewPosition
+                }
             }
+            
+            object.x = objectPosition.x
+            object.y = objectPosition.y
         }
     });
 
@@ -377,6 +421,9 @@ function drawGameObjects(ctx, gameObjects, staticObjects) {
         object.drawObject(ctx);
 
         if (object.enabled) {
+            object.vectors.forEach(vector => {
+                drawArrow(ctx, object.x, object.y, { x: vector.x / 5000, y: vector.y / 5000 }, `${-1 > 0 ? 'red' : 'blue'}`, 5, 15);
+            })
             staticObjects.forEach(staticObject => {
                 if(staticObject instanceof Negative) {
                     const fieldVector = calculateElectricForceVector(staticObject, object);

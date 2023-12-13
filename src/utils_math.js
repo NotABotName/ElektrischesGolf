@@ -6,27 +6,29 @@ export function calculateUnitVector(vector) {
     return { x: ux, y: uy };
 }
 
-export function calculateElectricForceVector(objectA, objectB) {
+export function calculateElectricForceVector(chargeA, positionA, chargeB, positionB) {
+    if(positionB === undefined) positionB = {x: 0, y: 0};
+
     // Coulomb's constant
     const k = 8.99e9;
-    
+
     // Calculate the displacement vector from object B to object A
-    const displacementX = objectA.x - objectB.x;
-    const displacementY = objectA.y - objectB.y;
+    const displacementX = positionA.x - positionB.x;
+    const displacementY = positionA.y - positionB.y;
 
     // Calculate the distance between the two objects
     const distance = Math.sqrt(displacementX ** 2 + displacementY ** 2);
 
     // Calculate the electric field magnitude due to object B
-    const electricFieldMagnitude = (k * objectB.charge) / (distance ** 2);
+    const electricFieldMagnitude = (k * chargeB) / (distance ** 2);
 
     // Calculate the electric field vector components
     const electricFieldX = electricFieldMagnitude * (displacementX / distance);
     const electricFieldY = electricFieldMagnitude * (displacementY / distance);
 
     // Calculate the electric force vector on object A
-    const electricForceX = objectA.charge * electricFieldX;
-    const electricForceY = objectA.charge * electricFieldY;
+    const electricForceX = -chargeA * electricFieldX;
+    const electricForceY = -chargeA * electricFieldY;
 
     // Return the electric force vector
     return { x: electricForceX, y: electricForceY };
