@@ -20,7 +20,18 @@ export function calculateElectricForceVector(chargeA, positionA, chargeB, positi
     const distance = Math.sqrt(displacementX ** 2 + displacementY ** 2);
 
     // Calculate the electric field magnitude due to object B
-    const electricFieldMagnitude = (k * chargeB) / (distance ** 2);
+    var electricFieldMagnitude = (k * chargeB) / (distance ** 2);
+
+    // Adjust the electric field magnitude if the distance is less than 10
+    var minimumDistance = 50
+    if (distance < minimumDistance) {
+        const adjustedMagnitude = (distance / minimumDistance) ** 5;
+        electricFieldMagnitude *= adjustedMagnitude;
+        
+        // Ensure the final value is not less than the threshold
+        // electricFieldMagnitude = Math.min(electricFieldMagnitude, - 300000);
+        // console.log(electricFieldMagnitude)
+    }
 
     // Calculate the electric field vector components
     const electricFieldX = electricFieldMagnitude * (displacementX / distance);

@@ -114,6 +114,7 @@ class GameObject {
     drawObject(ctx) {
     }
 
+    /*
     moveObject(force, time, maxAcceleration) {
         // Calculate unclamped acceleration
         const acceleration = {
@@ -140,6 +141,7 @@ class GameObject {
         this.x += this.velocity.x * time;
         this.y += this.velocity.y * time;
     }
+    */
 }
 
 class Positive extends GameObject {
@@ -328,7 +330,8 @@ function checkForCollision(gameObjects, staticObjects) {
 let lastUpdate = Date.now();
 
 function calculateMovementEndPosition(mass, position, velocity, force, time) {
-    const maxAcceleration = 50; // You need to define maxAcceleration
+    const maxAcceleration = 50;
+    const maxVelocity = .05;
 
     // Calculate unclamped acceleration
     const acceleration = {
@@ -347,13 +350,32 @@ function calculateMovementEndPosition(mass, position, velocity, force, time) {
         acceleration.y *= scale;
     }
 
+    const forceUnitVector = calculateUnitVector(force)
+
+    // Check if test velocity exceeds max velocity
+    var newPosition = {x: position.x, y: position.y}
+    const velocityMagnitude = Math.sqrt(velocity.x ** 2 + velocity.y ** 2)
+
     // Calculate new position
-    const newPosition = {
-        x: position.x + velocity.x + 0.5 * acceleration.x * time * time,
-        y: position.y + velocity.y + 0.5 * acceleration.y * time * time
+    if(true) {
+        newPosition = {
+            x: position.x + velocity.x + 0.5 * acceleration.x * time * time,
+            y: position.y + velocity.y + 0.5 * acceleration.y * time * time
+        };
+    } else
+    {
+        newPosition = {
+            x: position.x + forceUnitVector.x * velocityMagnitude,
+            y: position.y + forceUnitVector.y * velocityMagnitude
+        };
+    }
+
+    const outVelocity = {
+        x: (newPosition.x - position.x)/time,
+        y: (newPosition.y - position.y)/time
     };
 
-    return newPosition;
+    return {position: newPosition, velocity: outVelocity};
 }
 
 function updateGameObjects(gameObjects, staticObjects, dt) {
@@ -364,6 +386,7 @@ function updateGameObjects(gameObjects, staticObjects, dt) {
     gameObjects.forEach(object => {
         if (object.enabled) {
             var objectPosition = {x: object.x, y: object.y}
+            var objectVelocity = {x: object.velocity.x, y: object.velocity.y}
 
             for (let time = 0; time <= dt; time += 1) {
                 
@@ -386,14 +409,16 @@ function updateGameObjects(gameObjects, staticObjects, dt) {
                 object.CombinedVector = CombinedVector
                 
                 if(loop) {
-                    const TempNewPosition = calculateMovementEndPosition(1, objectPosition, {x: 0, y: 0}, { x: CombinedVector.x * -.0000001, y: CombinedVector.y * -.0000001}, 1)
+                    const TempNewPosition = calculateMovementEndPosition(1, objectPosition, {x: object.velocity.x, y: object.velocity.y}, { x: CombinedVector.x * -.00000001, y: CombinedVector.y * -.00000001}, 1)
                     // console.log(TempNewPosition)
-                    objectPosition = TempNewPosition
+                    objectPosition = TempNewPosition.position
+                    objectVelocity = TempNewPosition.velocity
                 }
             }
             
             object.x = objectPosition.x
             object.y = objectPosition.y
+            object.velocity = objectVelocity
         }
     });
 
@@ -442,7 +467,7 @@ function gameLoop() {
 
     // Get Delta Time DT
     const now = Date.now();
-    const dt = now - lastUpdate;
+    const dt = (now - lastUpdate);
     lastUpdate = now;
 
     // Update game logic
