@@ -113,35 +113,6 @@ class GameObject {
 
     drawObject(ctx) {
     }
-
-    /*
-    moveObject(force, time, maxAcceleration) {
-        // Calculate unclamped acceleration
-        const acceleration = {
-            x: force.x / this.mass,
-            y: force.y / this.mass
-        };
-    
-        // Calculate the magnitude of the acceleration
-        const accelerationMagnitude = Math.sqrt(acceleration.x ** 2 + acceleration.y ** 2);
-    
-        // Check if the magnitude exceeds the maximum acceleration
-        if (accelerationMagnitude > maxAcceleration) {
-            // Scale down the acceleration to the maximum acceleration
-            const scale = maxAcceleration / accelerationMagnitude;
-            acceleration.x *= scale;
-            acceleration.y *= scale;
-        }
-    
-        // Update velocity using clamped acceleration
-        this.velocity.x += 0.5 * acceleration.x * time * time;
-        this.velocity.y += 0.5 * acceleration.y * time * time;
-    
-        // Calculate new position based on the updated velocity
-        this.x += this.velocity.x * time;
-        this.y += this.velocity.y * time;
-    }
-    */
 }
 
 class Positive extends GameObject {
@@ -203,13 +174,137 @@ function callGameWon() {
 
 var gameObjects = [];
 
+// Get Maps data from maps.json
+const mapsData = {
+    "levels": [
+        {
+            "name": "Level 1",
+            "index": 0,
+            "difficulty": 1,
+            "obstacles": [
+                {
+                    "name": "Obstacle 1",
+                    "x": 400,
+                    "y": 250,
+                    "width": 25,
+                    "height": 100
+                }
+            ]
+        },
+        {
+            "name": "Level 2",
+            "index": 1,
+            "difficulty": 2,
+            "obstacles": [
+                {
+                    "name": "Obstacle 1",
+                    "x": 200,
+                    "y": 150,
+                    "width": 25,
+                    "height": 100
+                },
+                {
+                    "name": "Obstacle 2",
+                    "x": 400,
+                    "y": 250,
+                    "width": 25,
+                    "height": 100
+                },
+                {
+                    "name": "Obstacle 3",
+                    "x": 600,
+                    "y": 350,
+                    "width": 25,
+                    "height": 100
+                }
+            ]
+        },
+        {
+            "name": "Level 3",
+            "index": 2,
+            "difficulty": 1,
+            "obstacles": [
+                {
+                    "name": "Obstacle 1",
+                    "x": 200,
+                    "y": 0,
+                    "width": 25,
+                    "height": 400
+                },
+                {
+                    "name": "Obstacle 2",
+                    "x": 500,
+                    "y": 200,
+                    "width": 25,
+                    "height": 400
+                }
+            ]
+        },
+        {
+            "name": "Level 4",
+            "index": 3,
+            "difficulty": 3,
+            "obstacles": [
+                {
+                    "name": "Obstacle 1",
+                    "x": 150,
+                    "y": 50,
+                    "width": 25,
+                    "height": 300
+                },
+                {
+                    "name": "Obstacle 2",
+                    "x": 350,
+                    "y": 250,
+                    "width": 300,
+                    "height": 25
+                },
+                {
+                    "name": "Obstacle 3",
+                    "x": 550,
+                    "y": 250,
+                    "width": 25,
+                    "height": 100
+                },
+                {
+                    "name": "Obstacle 4",
+                    "x": 400,
+                    "y": 350,
+                    "width": 25,
+                    "height": 300
+                },
+                {
+                    "name": "Obstacle 5",
+                    "x": 500,
+                    "y": 0,
+                    "width": 25,
+                    "height": 150
+                },
+            ]
+        },
+    ]
+};
+
+// Add Map buttons
+const container = document.getElementById("Maps");
+
+var currentMap = 3
+
+mapsData.levels.forEach(level => {
+    const button = document.createElement('button');
+    button.textContent = level.name;
+    container.appendChild(button);
+
+    button.addEventListener('click', () => {
+        currentMap = level.index
+        loop = false
+        initializeGameState()
+    });
+});
+
 function initializeGameState() {
     
     const Positive1 = new Positive('Positive main', 100, 300, true, 1, 25)
-
-    const Collider1 = new Collider('Collider 1', 200, 150, false, 0, 0, 25, 100)
-    const Collider2 = new Collider('Collider 1', 400, 250, false, 0, 0, 25, 100)
-    const Collider3 = new Collider('Collider 2', 600, 350, false, 0, 0, 25, 100)
 
     const Goal1 = new Goal('Goal 1', 700, 250, false, 0, 0, 25, 100)
     
@@ -222,7 +317,7 @@ function initializeGameState() {
 
     gameObjects = []
 
-    gameObjects.push(Positive1, Negative2, Negative1, Negative3, Negative4, Negative6, Negative5, Collider1, Collider2, Collider3, Goal1)
+    gameObjects.push(Positive1, Negative2, Negative1, Negative3, Negative4, Negative6, Negative5, Goal1)
 
     // Bounds
     const Bound1 = new Collider('Collider 1', 0, 0, false, 0, 0, 5, 600)
@@ -230,6 +325,11 @@ function initializeGameState() {
     const Bound3 = new Collider('Collider 3', 0, 0, false, 0, 0, 800, 5)
     const Bound4 = new Collider('Collider 3', 0, 600-5, false, 0, 0, 800, 5)
 
+    // Load Colliders
+    mapsData.levels[currentMap].obstacles.forEach(obstacle => {
+        const newObstacle = new Collider(obstacle.name, obstacle.x, obstacle.y, false, 0, 0, obstacle.width, obstacle.height)
+        gameObjects.push(newObstacle)
+    });
 
     gameObjects.push(Bound1,Bound2, Bound3, Bound4)
 }
@@ -388,7 +488,9 @@ function updateGameObjects(gameObjects, staticObjects, dt) {
             var objectPosition = {x: object.x, y: object.y}
             var objectVelocity = {x: object.velocity.x, y: object.velocity.y}
 
-            for (let time = 0; time <= dt; time += 1) {
+            const timeSteps = 0.25
+
+            for (let time = 0; time <= dt; time += timeSteps) {
                 
                 const CombinedVector = { x: 0, y: 0 };
                 
@@ -409,7 +511,13 @@ function updateGameObjects(gameObjects, staticObjects, dt) {
                 object.CombinedVector = CombinedVector
                 
                 if(loop) {
-                    const TempNewPosition = calculateMovementEndPosition(1, objectPosition, {x: object.velocity.x, y: object.velocity.y}, { x: CombinedVector.x * -.00000001, y: CombinedVector.y * -.00000001}, 1)
+                    const TempNewPosition = calculateMovementEndPosition(
+                        1,
+                        objectPosition, 
+                        {x: object.velocity.x, y: object.velocity.y}, 
+                        { x: CombinedVector.x * -(0.00000001 * timeSteps), y: CombinedVector.y * -(0.00000001 * timeSteps)}, 
+                        1
+                    )
                     // console.log(TempNewPosition)
                     objectPosition = TempNewPosition.position
                     objectVelocity = TempNewPosition.velocity
