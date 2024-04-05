@@ -288,7 +288,7 @@ const mapsData = {
 // Add Map buttons
 const container = document.getElementById("Maps");
 
-var currentMap = 3
+var currentMap = 0
 
 mapsData.levels.forEach(level => {
     const button = document.createElement('button');
